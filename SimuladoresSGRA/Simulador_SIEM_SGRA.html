@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador SIEM | SGRA · Seguridad Informática UTEQ</title>
+<style>
+:root{--paper:#F4F7F5;--panel:#FFFFFF;--panel-2:#E8F3EC;--ink:#15231A;--muted:#526357;--line:#D6E4DB;--forest:#0D4F32;--forest-2:#116A43;--leaf:#198754;--gold:#E0AE17;--on:#FFFFFF;--crit:#B3261E;--crit-bg:#FBE7E5;--high:#B9531A;--high-bg:#FBEBDD;--med:#7E6400;--med-bg:#F8F0CF;--low:#2F6E2A;--low-bg:#E3F1DD;--info:#35607F;--info-bg:#E2EDF5;--z:1;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0E1611;--panel:#15211A;--panel-2:#1C2B21;--ink:#E5EEE6;--muted:#9DB3A3;--line:#2A3B2F;--forest:#8ED19A;--forest-2:#2F7A3B;--leaf:#9DD03C;--gold:#E8BC3A;--on:#0E1611;--crit:#FF8A80;--crit-bg:#3A1714;--high:#F2A06A;--high-bg:#3A2414;--med:#E2C55A;--med-bg:#332B10;--low:#8ED19A;--low-bg:#173022;--info:#8FBFE3;--info-bg:#16283A;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0E1611;--panel:#15211A;--panel-2:#1C2B21;--ink:#E5EEE6;--muted:#9DB3A3;--line:#2A3B2F;--forest:#8ED19A;--forest-2:#2F7A3B;--leaf:#9DD03C;--gold:#E8BC3A;--on:#0E1611;--crit:#FF8A80;--crit-bg:#3A1714;--high:#F2A06A;--high-bg:#3A2414;--med:#E2C55A;--med-bg:#332B10;--low:#8ED19A;--low-bg:#173022;--info:#8FBFE3;--info-bg:#16283A;color-scheme:dark}
+*{box-sizing:border-box}
+html{font-size:calc(clamp(13.5px,.6vw + 8px,20px) * var(--z))}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.4;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,"Liberation Mono",monospace;font-size:.92em}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;padding:.55rem 1rem;background:#0D4F32;color:#fff;border-bottom:.3rem solid var(--gold)}
+.topbar h1{margin:0;font-size:1.25rem;font-weight:700;line-height:1.15}
+.topbar h1 small{display:block;font-weight:400;font-size:.72rem;opacity:.9}
+.topbar .grow{flex:1}
+.topbar .ctl{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+.topbar select,.topbar .tb{background:#fff1;border:1px solid #ffffff55;color:#fff;border-radius:.4rem;padding:.3rem .55rem;cursor:pointer}
+.topbar select option{color:#15231A}
+.topbar .tb:hover{background:#fff2}
+.topbar .tb[aria-pressed="true"]{background:var(--gold);color:#15231A;border-color:var(--gold)}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;background:#0003;padding:.25rem .6rem;border-radius:.4rem}
+.btn{display:inline-flex;align-items:center;gap:.35rem;border:2px solid var(--forest-2);background:var(--panel);color:var(--ink);border-radius:.45rem;padding:.3rem .7rem;cursor:pointer;font-weight:600;line-height:1.2}
+.btn:hover{background:var(--panel-2)}
+.btn.primary{background:var(--forest-2);color:#fff}
+.btn.danger{border-color:var(--crit);color:var(--crit)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:.15rem .5rem;font-size:.86rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:.6rem;padding:.7rem .8rem;min-width:0}
+.panel > h2{margin:0 0 .5rem;font-size:1.02rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.panel > h2 .hint{font-weight:400;font-size:.8rem;color:var(--muted)}
+.muted{color:var(--muted)}
+.sev{display:inline-block;padding:.05rem .5rem;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap}
+.sev.critica{background:var(--crit-bg);color:var(--crit)}.sev.alta{background:var(--high-bg);color:var(--high)}.sev.media{background:var(--med-bg);color:var(--med)}.sev.baja{background:var(--low-bg);color:var(--low)}.sev.info{background:var(--info-bg);color:var(--info)}
+.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.tbl th{text-align:left;font-weight:700;color:var(--muted);border-bottom:2px solid var(--line);padding:.3rem .4rem;position:sticky;top:0;background:var(--panel);z-index:1}
+.tbl td{border-bottom:1px solid var(--line);padding:.28rem .4rem;vertical-align:top}
+.scroll{overflow:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.5rem}
+.kpi{background:var(--panel);border:1px solid var(--line);border-left:.35rem solid var(--forest-2);border-radius:.5rem;padding:.4rem .6rem}
+.kpi b{display:block;font-size:1.45rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.8rem;color:var(--muted)}
+.switch{display:flex;align-items:center;gap:.5rem;cursor:pointer}
+.switch input{appearance:none;width:2.3rem;height:1.25rem;border-radius:999px;background:var(--line);position:relative;cursor:pointer;flex:none;margin:0;transition:background .2s}
+.switch input::after{content:"";position:absolute;top:.15rem;left:.15rem;width:.95rem;height:.95rem;border-radius:50%;background:#fff;transition:left .2s}
+.switch input:checked{background:var(--forest-2)}
+.switch input:checked::after{left:1.2rem}
+input[type=range]{accent-color:var(--forest-2);width:100%}
+.tabs{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.5rem}
+.tabs button{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:.2rem .75rem;cursor:pointer;font-weight:600}
+.tabs button[aria-selected="true"]{background:var(--forest-2);border-color:var(--forest-2);color:#fff}
+.fb{display:flex;gap:.5rem;padding:.5rem .65rem;border-radius:.45rem;font-size:.9rem;margin-top:.5rem}
+.fb.ok{background:var(--low-bg);color:var(--low)}.fb.bad{background:var(--crit-bg);color:var(--crit)}.fb.warn{background:var(--med-bg);color:var(--med)}.fb.info{background:var(--info-bg);color:var(--info)}
+.fb b{color:inherit}
+.empty{padding:1rem;text-align:center;color:var(--muted);border:2px dashed var(--line);border-radius:.5rem}
+.modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:1rem;z-index:50}
+.modal[hidden]{display:none}
+.modal .box{background:var(--panel);color:var(--ink);border-radius:.8rem;max-width:62rem;width:100%;max-height:92vh;overflow:auto;padding:1.1rem 1.3rem;border-top:.4rem solid var(--gold)}
+.modal h2{margin:0 0 .6rem}
+.foot-note{font-size:.78rem;color:var(--muted);padding:.4rem 1rem 1rem}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+.topbar .ctl{min-width:0;max-width:100%}
+.topbar select{max-width:100%;min-width:0;text-overflow:ellipsis}
+
+.siem{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);grid-template-areas:"kpis kpis" "events side" "events detail";grid-template-rows:auto minmax(0,1fr) minmax(0,1.25fr);gap:.7rem;padding:.7rem 1rem;height:calc(100vh - var(--top,7rem));min-height:38rem}
+#kpis{grid-area:kpis}
+.events{grid-area:events;display:flex;flex-direction:column;min-height:0}
+.events .scroll{flex:1;border:1px solid var(--line);border-radius:.4rem}
+.side{grid-area:side;display:flex;flex-direction:column;min-height:0}
+.side .scroll{flex:1}
+.detail{grid-area:detail;overflow:auto;min-height:0}
+.filters{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;margin-bottom:.45rem}
+.filters input{flex:1 1 14rem;padding:.3rem .55rem;border:2px solid var(--line);border-radius:.4rem;background:var(--panel)}
+.chip{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:.08rem .6rem;cursor:pointer;font-size:.84rem}
+.chip[aria-pressed="true"]{background:var(--forest-2);border-color:var(--forest-2);color:#fff}
+.ev td:nth-child(1){white-space:nowrap;font-variant-numeric:tabular-nums}
+.ev tr.new td{animation:flash 1.2s ease}
+@keyframes flash{from{background:var(--gold)}to{background:transparent}}
+.ev tr.hl td{background:var(--med-bg)}
+.src{display:inline-block;font-size:.78rem;font-weight:700;padding:0 .4rem;border-radius:.3rem;background:var(--panel-2)}
+.res-f{color:var(--crit);font-weight:700}.res-ok{color:var(--low)}
+.alerts{list-style:none;margin:0;padding:0;display:grid;gap:.3rem}
+.alerts button{width:100%;text-align:left;border:2px solid var(--line);background:var(--panel);border-radius:.45rem;padding:.35rem .5rem;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:.15rem .5rem;align-items:center}
+.alerts button[aria-current="true"]{border-color:var(--gold);background:var(--panel-2)}
+.alerts .ent{grid-column:2/4;font-size:.82rem;color:var(--muted)}
+.alerts .st{font-size:.78rem;font-weight:700}
+.st-open{color:var(--high)}.st-closed{color:var(--muted)}.st-inc{color:var(--crit)}
+.rule{border:1px solid var(--line);border-radius:.45rem;padding:.4rem .55rem;margin-bottom:.35rem}
+.rule p{margin:.2rem 0 0;font-size:.84rem;color:var(--muted)}
+.rule .param{display:grid;grid-template-columns:auto 1fr auto;gap:.5rem;align-items:center;font-size:.84rem;margin-top:.3rem}
+.rule .cnt{font-size:.78rem;color:var(--muted);margin-left:auto}
+.qs{margin:.3rem 0;padding-left:1.1rem;font-size:.88rem}
+.decide{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+.ioc{list-style:none;padding:0;margin:0;display:grid;gap:.3rem}
+.ioc li{border:1px solid var(--line);border-radius:.4rem;padding:.3rem .5rem;font-size:.86rem}
+.rep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:.5rem;margin-bottom:.7rem}
+@media (max-width:900px){.siem{grid-template-columns:1fr;grid-template-areas:"kpis" "side" "detail" "events";height:auto}.events{height:70vh}.side{max-height:50vh}}
+/* Identidad visual de SGRA */
+.brand-mark{letter-spacing:.045em;font-weight:800}
+.brand-mark span{color:#a0ddb5}
+.topbar{background:#0D4F32;border-bottom-color:#198754}
+.topbar .tb[aria-pressed="true"]{background:#d8f0e0;color:#0d4f32;border-color:#d8f0e0}
+.topbar select option{background:#fff;color:#16251c}
+.panel,.kpi{box-shadow:0 3px 12px #112e1d0e}
+.foot-note{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:580px){.topbar select{max-width:min(77vw,24rem)}.topbar .grow{display:none}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1><span class="brand-mark">SGRA <span>·</span> </span>Simulador SIEM<small>Correlación y triaje de eventos del SGRA con datos ficticios</small></h1>
+  <div class="ctl"><label for="scn">Escenario</label>
+    <select id="scn">
+      <option value="s1">Cuenta de coordinación comprometida</option>
+      <option value="s2">Phishing con una falsa invitación de refuerzo</option>
+      <option value="s3">Operación normal y respaldo programado</option>
+    </select></div>
+  <div class="ctl">
+    <button type="button" class="tb" id="play">Iniciar turno</button>
+    <button type="button" class="tb" id="step">Avanzar 1 minuto</button>
+    <button type="button" class="tb" id="reset">Reiniciar</button>
+    <span>Velocidad</span><button type="button" class="tb" data-speed="1" aria-pressed="true">1×</button><button type="button" class="tb" data-speed="2" aria-pressed="false">2×</button><button type="button" class="tb" data-speed="4" aria-pressed="false">4×</button>
+  </div>
+  <span class="grow"></span>
+  <span class="clock" id="clock" aria-live="off"></span>
+  <button type="button" class="tb" id="end">Cerrar turno</button>
+  <div class="ctl"><button type="button" class="tb" id="zoom-out" aria-label="Reducir el texto">A−</button><button type="button" class="tb" id="zoom-in" aria-label="Ampliar el texto">A+</button><button type="button" class="tb" id="theme">Tema</button></div>
+</header>
+
+<main class="siem">
+  <section class="kpis" id="kpis" aria-label="Indicadores del turno"></section>
+
+  <section class="panel events" aria-labelledby="ev-h">
+    <h2 id="ev-h">Eventos normalizados <span class="hint">Los más recientes arriba. Hora en UTC (Ecuador: UTC−5).</span></h2>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Buscar: usuario, IP, dominio, evento…" aria-label="Buscar en los eventos">
+      <span id="srcs" role="group" aria-label="Filtrar por fuente"></span>
+    </div>
+    <div class="scroll"><table class="tbl ev"><thead><tr><th scope="col">Hora UTC</th><th scope="col">Fuente</th><th scope="col">Host</th><th scope="col">Usuario</th><th scope="col">Evento</th><th scope="col">Detalle</th><th scope="col">IP de origen</th></tr></thead><tbody id="evs"></tbody></table></div>
+  </section>
+
+  <section class="panel side" aria-label="Alertas, reglas e indicadores">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-tab="al" id="tab-al">Alertas</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="ru">Reglas de correlación</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="io" id="tab-io">Indicadores (IoC)</button>
+    </div>
+    <div class="scroll" id="pane-al"><ul class="alerts" id="alerts"></ul></div>
+    <div class="scroll" id="pane-ru" hidden></div>
+    <div class="scroll" id="pane-io" hidden><ul class="ioc" id="iocs"></ul></div>
+  </section>
+
+  <section class="panel detail" id="detail" aria-live="polite"></section>
+</main>
+
+<div class="modal" id="report" hidden><div class="box" role="dialog" aria-modal="true" aria-labelledby="rep-h"><h2 id="rep-h">Informe del turno</h2><div id="rep-body"></div><div class="decide"><button type="button" class="btn primary" id="rep-close">Volver al tablero</button><button type="button" class="btn" id="rep-reset">Reiniciar el escenario</button></div></div></div>
+
+<p class="foot-note">Ejercicio local del Sistema de Gestión de Refuerzos Académicos (SGRA). La infraestructura, los usuarios y los eventos del ejercicio son ficticios. Simulación didáctica con datos ficticios: IP de los rangos reservados para documentación y dominios .example. Basada en el Tema 4: detección y análisis, triaje y declaración formal de incidentes (NIST SP 800-61; CISA, 2024; CSF 2.0 DE y RS.AN).</p>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function rng(seed) { return function () { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+(function chrome() {
+  const root = document.documentElement;
+  let z = 1;
+  const setZ = (v) => { z = Math.min(1.6, Math.max(0.75, Math.round(v * 100) / 100)); root.style.setProperty('--z', z); };
+  $('#zoom-out').addEventListener('click', () => setZ(z - 0.1));
+  $('#zoom-in').addEventListener('click', () => setZ(z + 0.1));
+  $('#theme').addEventListener('click', () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+  });
+})();
+
+(function siem() {
+  const TICK_MIN = 0.5;
+  const DUR = 100;
+  const START = Date.UTC(2026, 9, 26, 12, 30, 0);
+  const USERS = {
+    'e.perez': { role: 'Estudiante' }, 'm.lopez': { role: 'Estudiante' }, 'j.vera': { role: 'Estudiante' }, 'a.mora': { role: 'Estudiante' }, 'c.ruiz': { role: 'Estudiante' },
+    'd.torres': { role: 'Docente' }, 'l.salas': { role: 'Docente' }, 'k.rios': { role: 'Estudiante' }, 'p.zambrano': { role: 'Estudiante' }, 'r.intriago': { role: 'Docente' },
+    'coord.cedeno': { role: 'Coordinación académica con permisos de reporte', priv: true },
+    'adm.sgra': { role: 'Administrador de SGRA', priv: true },
+    'svc-respaldo': { role: 'Cuenta de servicio de respaldos (documentada)', priv: true, svc: true },
+    'ex.alvarez': { role: 'Cuenta deshabilitada de un egresado', disabled: true }
+  };
+  const SRCS = ['Autenticación', 'SGRA', 'Firewall', 'Correo', 'Inteligencia'];
+  const RULES = [
+    { id: 'R1', name: 'Fuerza bruta contra una cuenta', sev: 'alta', on: true, n: 5, desc: 'N o más inicios de sesión fallidos de la misma cuenta en 5 minutos.', param: { label: 'Fallos mínimos', min: 3, max: 10, step: 1 }, qs: ['¿Los fallos vienen de una IP y ubicación habituales?', '¿Les siguió un inicio de sesión exitoso?'] },
+    { id: 'R2', name: 'Inicio exitoso tras fallos repetidos', sev: 'alta', on: true, desc: 'Inicio exitoso de una cuenta con 3 o más fallos en los 10 minutos previos.', qs: ['¿El éxito llega desde el mismo equipo y ubicación que los fallos?', '¿La cuenta es privilegiada?'] },
+    { id: 'R3', name: 'Cuenta privilegiada desde ubicación inusual', sev: 'critica', on: true, desc: 'Inicio exitoso de una cuenta con privilegios elevados desde fuera de Ecuador.', qs: ['¿Existe un viaje autorizado o una verificación por un canal confiable?', '¿Qué hizo la cuenta después del acceso?'] },
+    { id: 'R4', name: 'Exportación masiva de registros', sev: 'alta', on: true, n: 300, ex: false, desc: 'Exportación de N o más registros en una sola operación.', param: { label: 'Registros mínimos', min: 100, max: 6000, step: 100 }, qs: ['¿La cuenta tiene una tarea programada y documentada?', '¿Los registros incluyen datos personales?'] },
+    { id: 'R5', name: 'Coincidencia con un indicador de compromiso', sev: 'critica', on: true, desc: 'Evento con un dominio o una IP de la lista de IoC.', qs: ['¿Qué cuenta o equipo tocó el indicador?', '¿La conexión fue permitida o solo un intento?'] },
+    { id: 'R6', name: 'Cuenta deshabilitada intenta acceder', sev: 'media', on: true, desc: 'Intento de acceso con una cuenta deshabilitada.', qs: ['¿Hay otros eventos de la misma cuenta o IP?'] }
+  ];
+  const NOTES = {
+    olvido: 'e.perez olvidó su contraseña: los fallos y el éxito vienen del mismo equipo del campus y sin otros indicios.',
+    ataque: 'Fallos repetidos desde un país no habitual contra una cuenta privilegiada, seguidos de un acceso exitoso: patrón de credencial comprometida.',
+    exfil: 'La cuenta comprometida exportó un reporte de asistencia con datos personales: además de contener, corresponde notificar al delegado de protección de datos (LOPDP).',
+    ioc: 'Conexión a un dominio de la lista de IoC del CSIRT: indicador de compromiso confirmado.',
+    respaldo: 'Respaldo programado y documentado de la cuenta de servicio. Mejor que subir el umbral: aplicar una excepción aprobada para esa cuenta.',
+    viaje: 'El administrador está en un viaje autorizado y se verificó por un canal confiable por TI: se cierra sin incidente y se documenta.',
+    egresado: 'Un egresado intenta entrar con su cuenta antigua, sin otros indicios: se registra y se cierra sin incidente.',
+    docente: 'El docente escribió mal su contraseña desde su oficina y entró después: evento sin incidente.',
+    phishing: 'Correos con un dominio del aviso del CSIRT: campaña de phishing activa contra la institución.',
+    cuenta: 'Acceso desde la IP del aviso del CSIRT con la cuenta de una estudiante que hizo clic en el enlace: cuenta comprometida.'
+  };
+  const SCN = {
+    s1: { ioc: [['cdn-actualiza.example', 'Dominio', 'CSIRT nacional, aviso previo'], ['198.51.100.250', 'IP', 'CSIRT nacional, aviso previo']], script(t, add) {
+      if (t === 10 || t === 11) { add({ src: 'Autenticación', host: 'SGRA-APP', user: 'e.perez', ip: '10.20.30.15', geo: 'Campus', act: 'Inicio de sesión', res: 'Fallido', grp: 'olvido' }); add({ src: 'Autenticación', host: 'SGRA-APP', user: 'e.perez', ip: '10.20.30.15', geo: 'Campus', act: 'Inicio de sesión', res: 'Fallido', grp: 'olvido' }); }
+      if (t === 12) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'e.perez', ip: '10.20.30.15', geo: 'Campus', act: 'Inicio de sesión', res: 'Exitoso', grp: 'olvido' });
+      if (t >= 20 && t <= 23) for (let k = 0; k < 2; k += 1) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'coord.cedeno', ip: '203.0.113.45', geo: 'País no habitual', act: 'Inicio de sesión', res: 'Fallido', mal: true, grp: 'ataque' });
+      if (t === 25) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'coord.cedeno', ip: '203.0.113.45', geo: 'País no habitual', act: 'Inicio de sesión', res: 'Exitoso', mal: true, grp: 'ataque' });
+      if (t === 30) add({ src: 'SGRA', host: 'SGRA-APP', user: 'coord.cedeno', ip: '203.0.113.45', geo: 'País no habitual', act: 'Exportación de registros', det: 'Reporte de 480 filas de asistencia a refuerzos (datos personales)', count: 480, mal: true, grp: 'exfil', pd: true });
+      if (t === 33) add({ src: 'Firewall', host: 'SGRA-APP', user: '', ip: '10.20.10.5', act: 'Conexión saliente', det: 'cdn-actualiza.example:443 permitida', domain: 'cdn-actualiza.example', mal: true, grp: 'ioc' });
+      if (t === 40) add({ src: 'SGRA', host: 'SGRA-DB', user: 'svc-respaldo', ip: '10.20.10.9', geo: 'Campus', act: 'Exportación de registros', det: '5000 registros: respaldo de PostgreSQL programado', count: 5000, grp: 'respaldo' });
+      if (t === 50) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'd.torres', ip: '198.51.100.20', geo: 'Perú', act: 'Inicio de sesión', res: 'Exitoso', det: 'Congreso académico' });
+      if (t === 58) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'adm.sgra', ip: '198.51.100.77', geo: 'Colombia', act: 'Inicio de sesión', res: 'Exitoso', det: 'Viaje autorizado y verificado por TI', grp: 'viaje' });
+      if (t === 70) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'ex.alvarez', ip: '192.0.2.61', geo: 'Ecuador', act: 'Intento de acceso', res: 'Fallido', det: 'Cuenta deshabilitada', grp: 'egresado' });
+    } },
+    s2: { ioc: [], script(t, add, state) {
+      if (t === 4) { add({ src: 'Inteligencia', host: 'CSIRT', user: '', ip: '', act: 'Aviso del CSIRT nacional', det: 'Nuevos IoC: invitacion-sgra.example y 203.0.113.80' }); state.ioc.push(['invitacion-sgra.example', 'Dominio', 'CSIRT nacional, minuto 2'], ['203.0.113.80', 'IP', 'CSIRT nacional, minuto 2']); }
+      if (t === 10) ['m.lopez', 'j.vera', 'd.torres', 'a.mora'].forEach((u) => add({ src: 'Correo', host: 'Correo institucional', user: u, ip: '', act: 'Correo recibido con enlace', det: 'Asunto: invitación a una sesión de refuerzo', domain: 'invitacion-sgra.example', mal: true, grp: 'phishing' }));
+      if (t === 15) add({ src: 'Firewall', host: 'LAB-05', user: 'j.vera', ip: '10.20.30.25', act: 'Conexión saliente', det: 'invitacion-sgra.example:443 permitida', domain: 'invitacion-sgra.example', mal: true, grp: 'phishing' });
+      if (t === 22) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'j.vera', ip: '203.0.113.80', geo: 'País no habitual', act: 'Inicio de sesión', res: 'Exitoso', mal: true, grp: 'cuenta' });
+      if (t === 26) add({ src: 'SGRA', host: 'SGRA-APP', user: 'j.vera', ip: '203.0.113.80', geo: 'País no habitual', act: 'Cancelación de una solicitud de refuerzo', det: 'Solicitud REF-104 cancelada desde la sesión anómala', mal: true, grp: 'cuenta' });
+      if (t === 35 || t === 36) for (let k = 0; k < (t === 35 ? 3 : 2); k += 1) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'd.torres', ip: '10.20.40.8', geo: 'Campus', act: 'Inicio de sesión', res: 'Fallido', grp: 'docente' });
+      if (t === 37) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'd.torres', ip: '10.20.40.8', geo: 'Campus', act: 'Inicio de sesión', res: 'Exitoso', grp: 'docente' });
+      if (t === 45) add({ src: 'SGRA', host: 'SGRA-DB', user: 'svc-respaldo', ip: '10.20.10.9', geo: 'Campus', act: 'Exportación de registros', det: '5000 registros: respaldo de PostgreSQL programado', count: 5000, grp: 'respaldo' });
+    } },
+    s3: { ioc: [['cdn-actualiza.example', 'Dominio', 'CSIRT nacional, aviso previo']], script(t, add) {
+      if (t === 12 || t === 13) for (let k = 0; k < 2; k += 1) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'e.perez', ip: '10.20.30.15', geo: 'Campus', act: 'Inicio de sesión', res: 'Fallido', grp: 'olvido' });
+      if (t === 14) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'e.perez', ip: '10.20.30.15', geo: 'Campus', act: 'Inicio de sesión', res: 'Exitoso', grp: 'olvido' });
+      if (t === 30 || t === 31) for (let k = 0; k < (t === 30 ? 3 : 2); k += 1) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'd.torres', ip: '10.20.40.8', geo: 'Campus', act: 'Inicio de sesión', res: 'Fallido', grp: 'docente' });
+      if (t === 32) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'd.torres', ip: '10.20.40.8', geo: 'Campus', act: 'Inicio de sesión', res: 'Exitoso', grp: 'docente' });
+      if (t === 40) add({ src: 'SGRA', host: 'SGRA-DB', user: 'svc-respaldo', ip: '10.20.10.9', geo: 'Campus', act: 'Exportación de registros', det: '5000 registros: respaldo de PostgreSQL programado', count: 5000, grp: 'respaldo' });
+      if (t === 55) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'adm.sgra', ip: '198.51.100.77', geo: 'Colombia', act: 'Inicio de sesión', res: 'Exitoso', det: 'Viaje autorizado y verificado por TI', grp: 'viaje' });
+      if (t === 70) add({ src: 'Autenticación', host: 'SGRA-APP', user: 'ex.alvarez', ip: '192.0.2.61', geo: 'Ecuador', act: 'Intento de acceso', res: 'Fallido', det: 'Cuenta deshabilitada', grp: 'egresado' });
+    } }
+  };
+  const NORMAL = ['m.lopez', 'a.mora', 'c.ruiz', 'k.rios', 'p.zambrano', 'l.salas', 'r.intriago'];
+  const BENIGN_DOM = ['aula-virtual.example', 'biblioteca.example', 'actualizaciones-so.example', 'revistas.example'];
+
+  let S, timer = null, speed = 1, srcFilter = 'Todas', q = '', selected = null, firstMalT = null;
+  function fresh() {
+    const scn = $('#scn').value;
+    S = { scn, t: 0, ev: [], alerts: [], ioc: SCN[scn].ioc.map((x) => x.slice()), rnd: rng(scn === 's1' ? 11 : scn === 's2' ? 22 : 33), fails: {}, lastNew: 0, done: false };
+    selected = null; firstMalT = null;
+    srcFilter = "Todas"; q = ""; $("#q").value = "";
+    $$("[data-src]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.src === srcFilter)));
+    RULES.forEach((r) => { r.count = 0; });
+  }
+  const iocSet = () => new Set(S.ioc.map((x) => x[0]));
+  const fmt = (t) => new Date(START + t * TICK_MIN * 60000).toISOString().slice(11, 19);
+  function add(e) {
+    e.id = S.ev.length; e.t = S.t; e.user = e.user || ''; e.ip = e.ip || ''; e.det = e.det || ''; e.res = e.res || '';
+    S.ev.push(e);
+    if (e.mal && firstMalT === null) firstMalT = e.t;
+    correlate(e);
+  }
+  function noise() {
+    const r = S.rnd, n = 1 + Math.floor(r() * 3);
+    for (let k = 0; k < n; k += 1) {
+      const u = NORMAL[Math.floor(r() * NORMAL.length)], x = r();
+      const camp = r() < 0.7;
+      const ip = camp ? `10.20.${30 + Math.floor(r() * 20)}.${10 + Math.floor(r() * 200)}` : `192.0.2.${10 + Math.floor(r() * 200)}`;
+      if (x < 0.4) add({ src: 'Autenticación', host: 'SGRA-APP', user: u, ip, geo: camp ? 'Campus' : 'Ecuador', act: 'Inicio de sesión', res: r() < 0.08 ? 'Fallido' : 'Exitoso' });
+      else if (x < 0.7) add({ src: 'SGRA', host: 'SGRA-APP', user: u, ip, geo: camp ? 'Campus' : 'Ecuador', act: USERS[u].role === 'Docente' ? 'Registro de asistencia a refuerzo' : 'Consulta de solicitudes de refuerzo' });
+      else { const d = BENIGN_DOM[Math.floor(r() * BENIGN_DOM.length)]; add({ src: 'Firewall', host: `LAB-0${1 + Math.floor(r() * 8)}`, user: '', ip: `10.20.30.${10 + Math.floor(r() * 90)}`, act: 'Conexión saliente', det: `${d}:443 permitida`, domain: d }); }
+    }
+  }
+  function raise(rule, key, evs, entity) {
+    const open = S.alerts.find((a) => a.rule === rule.id && a.key === key && a.status === 'abierta' && S.t - a.last <= 20);
+    if (open) { evs.forEach((e) => { if (!open.events.includes(e.id)) open.events.push(e.id); }); open.last = S.t; return; }
+    rule.count += 1;
+    S.alerts.push({ id: S.alerts.length + 1, rule: rule.id, sev: rule.sev, key, entity, events: evs.map((e) => e.id), t: S.t, last: S.t, status: 'abierta' });
+    S.lastNew = S.alerts.length;
+  }
+  function correlate(e) {
+    const R = Object.fromEntries(RULES.map((r) => [r.id, r]));
+    const u = USERS[e.user] || {};
+    if (e.act === 'Inicio de sesión' && e.res === 'Fallido') {
+      (S.fails[e.user] = S.fails[e.user] || []).push(e);
+      const win = S.fails[e.user].filter((f) => S.t - f.t <= 10);
+      if (R.R1.on && win.length >= R.R1.n) raise(R.R1, e.user, win, `${e.user} desde ${e.ip}`);
+    }
+    if (e.act === 'Inicio de sesión' && e.res === 'Exitoso') {
+      const prev = (S.fails[e.user] || []).filter((f) => S.t - f.t <= 20);
+      if (R.R2.on && prev.length >= 3) { raise(R.R2, e.user, prev.concat(e), `${e.user} desde ${e.ip}`); S.fails[e.user] = []; }
+      if (R.R3.on && u.priv && e.geo && !['Campus', 'Ecuador'].includes(e.geo)) raise(R.R3, e.user, [e], `${e.user} desde ${e.geo} (${e.ip})`);
+    }
+    if (e.act === 'Exportación de registros' && R.R4.on && e.count >= R.R4.n && !(R.R4.ex && u.svc)) raise(R.R4, e.user, [e], `${e.user}: ${e.count} registros`);
+    const set = iocSet();
+    if (R.R5.on && ((e.domain && set.has(e.domain)) || (e.ip && set.has(e.ip)))) { const k = e.domain && set.has(e.domain) ? e.domain : e.ip; raise(R.R5, k, [e], `Indicador ${k}`); }
+    if (R.R6.on && u.disabled) raise(R.R6, e.user, [e], `${e.user} (${e.ip})`);
+  }
+  function tick() {
+    if (S.done || S.t >= DUR) return;
+    S.t += 1;
+    noise();
+    SCN[S.scn].script(S.t, add, S);
+    render();
+    if (S.t >= DUR) showReport();
+  }
+  function start() { if (timer || S.done) return; timer = setInterval(tick, 900 / speed); $('#play').textContent = 'Pausar'; $('#play').setAttribute('aria-pressed', 'true'); }
+  function stop() { clearInterval(timer); timer = null; $('#play').textContent = S.done ? 'Turno terminado' : 'Reanudar'; $('#play').setAttribute('aria-pressed', 'false'); }
+
+  const truth = (a) => a.events.some((id) => S.ev[id].mal);
+  function noteOf(a) { const evs = a.events.map((id) => S.ev[id]); const m = evs.find((e) => e.mal && e.grp) || evs.find((e) => e.grp); return m ? NOTES[m.grp] : 'Coincidencia sin otros indicios en los registros: se documenta y se cierra.'; }
+  function stats() {
+    const decided = S.alerts.filter((a) => a.status !== 'abierta');
+    const correct = decided.filter((a) => (a.status === 'incidente') === truth(a)).length;
+    const firstTrue = S.alerts.filter(truth).sort((x, y) => x.t - y.t)[0];
+    const mttd = firstMalT === null ? null : firstTrue ? (firstTrue.t - firstMalT) * TICK_MIN : null;
+    return { decided: decided.length, correct, open: S.alerts.filter((a) => a.status === 'abierta').length, inc: S.alerts.filter((a) => a.status === 'incidente').length, mttd, tp: S.alerts.filter(truth).length, fp: S.alerts.filter((a) => !truth(a)).length };
+  }
+  function renderKPIs() {
+    const s = stats();
+    $('#kpis').innerHTML = `
+      <div class="kpi"><b>${S.ev.length}</b><span>eventos procesados</span></div>
+      <div class="kpi" style="border-left-color:var(--high)"><b>${s.open}</b><span>alertas abiertas</span></div>
+      <div class="kpi" style="border-left-color:var(--crit)"><b>${s.inc}</b><span>incidentes declarados</span></div>
+      <div class="kpi" style="border-left-color:var(--gold)"><b>${s.mttd === null ? 'Sin datos' : `${s.mttd} min`}</b><span>tiempo hasta la primera detección</span></div>
+      <div class="kpi" style="border-left-color:var(--info)"><b>${s.decided ? `${Math.round((s.correct / s.decided) * 100)} %` : 'Sin datos'}</b><span>acierto en el triaje (${s.correct} de ${s.decided})</span></div>`;
+    $('#clock').textContent = `${fmt(S.t)} UTC, minuto ${Math.round(S.t * TICK_MIN)} de ${DUR * TICK_MIN}`;
+  }
+  function renderEvents() {
+    const hl = selected ? new Set(S.alerts[selected - 1].events) : new Set();
+    const qq = q.trim().toLowerCase();
+    const rows = [];
+    for (let i = S.ev.length - 1; i >= 0 && rows.length < 160; i -= 1) {
+      const e = S.ev[i];
+      if (srcFilter !== 'Todas' && e.src !== srcFilter) continue;
+      if (qq && ![e.user, e.ip, e.domain, e.act, e.det, e.host, e.geo].join(' ').toLowerCase().includes(qq)) continue;
+      const res = e.res === 'Fallido' ? '<span class="res-f">Fallido</span>' : e.res === 'Exitoso' ? '<span class="res-ok">Exitoso</span>' : '';
+      rows.push(`<tr class="${hl.has(e.id) ? 'hl' : ''} ${e.t === S.t ? 'new' : ''}"><td>${fmt(e.t)}</td><td><span class="src">${e.src}</span></td><td>${esc(e.host)}</td><td>${esc(e.user)}</td><td>${esc(e.act)} ${res}</td><td>${esc(e.det)}${e.geo && e.geo !== 'Campus' ? ` <span class="muted">(${esc(e.geo)})</span>` : ''}</td><td class="mono">${esc(e.ip)}</td></tr>`);
+    }
+    $('#evs').innerHTML = rows.join('') || `<tr><td colspan="7"><div class="empty">${S.ev.length ? 'Ningún evento coincide con el filtro.' : 'Pulsa «Iniciar turno» para recibir eventos del SGRA.'}</div></td></tr>`;
+  }
+  function renderAlerts() {
+    const list = S.alerts.slice().sort((a, b) => (b.status === 'abierta') - (a.status === 'abierta') || b.t - a.t);
+    const R = Object.fromEntries(RULES.map((r) => [r.id, r]));
+    $('#tab-al').textContent = `Alertas (${S.alerts.filter((a) => a.status === 'abierta').length} abiertas)`;
+    $('#alerts').innerHTML = list.map((a) => `<li><button type="button" data-al="${a.id}" aria-current="${selected === a.id}"><span class="sev ${a.sev}">${a.sev === 'critica' ? 'Crítica' : a.sev[0].toUpperCase() + a.sev.slice(1)}</span><b>${R[a.rule].name}</b><span class="st ${a.status === 'abierta' ? 'st-open' : a.status === 'incidente' ? 'st-inc' : 'st-closed'}">${a.status === 'abierta' ? 'Abierta' : a.status === 'incidente' ? 'Incidente' : 'Cerrada'}</span><span class="ent">${fmt(a.t)} UTC, ${esc(a.entity)}, ${a.events.length} evento${a.events.length === 1 ? '' : 's'}</span></button></li>`).join('') || '<li class="empty">Sin alertas todavía. Las reglas activas evalúan cada evento al llegar.</li>';
+  }
+  function renderRules() {
+    $('#pane-ru').innerHTML = RULES.map((r) => `<div class="rule"><label class="switch"><input type="checkbox" data-rule="${r.id}" ${r.on ? 'checked' : ''}><b>${r.id}. ${r.name}</b> <span class="sev ${r.sev}">${r.sev === 'critica' ? 'Crítica' : r.sev[0].toUpperCase() + r.sev.slice(1)}</span><span class="cnt">${r.count || 0} alertas</span></label><p>${r.desc}</p>
+      ${r.param ? `<div class="param"><label for="p-${r.id}">${r.param.label}</label><input type="range" id="p-${r.id}" data-param="${r.id}" min="${r.param.min}" max="${r.param.max}" step="${r.param.step}" value="${r.n}"><output for="p-${r.id}" class="mono">${r.n}</output></div>` : ''}
+      ${r.id === 'R4' ? `<label class="switch" style="margin-top:.3rem;font-size:.84rem"><input type="checkbox" data-ex="R4" ${r.ex ? 'checked' : ''}>Excepción aprobada: excluir la cuenta de servicio de respaldos documentada</label>` : ''}</div>`).join('') + '<p class="muted" style="font-size:.82rem">Los cambios se aplican a los eventos que llegan desde ahora. Afinar reglas equilibra falsos positivos y detecciones perdidas.</p>';
+  }
+  function renderIoc() {
+    $('#iocs').innerHTML = S.ioc.map(([v, k, s]) => `<li><b class="mono">${esc(v)}</b> <span class="muted">${k}, ${esc(s)}</span></li>`).join('') || '<li class="empty">Sin indicadores cargados. Llegarán con los avisos de inteligencia.</li>';
+    $('#tab-io').textContent = `Indicadores (${S.ioc.length})`;
+  }
+  function renderDetail() {
+    const d = $('#detail');
+    if (!selected) { d.innerHTML = '<h2>Triaje</h2><div class="empty">Selecciona una alerta para analizarla. Un evento no es un incidente hasta que el triaje lo valida.</div>'; return; }
+    const a = S.alerts[selected - 1], r = RULES.find((x) => x.id === a.rule), evs = a.events.map((id) => S.ev[id]);
+    const users = [...new Set(evs.map((e) => e.user).filter(Boolean))];
+    let fbHtml = '';
+    if (a.status !== 'abierta') {
+      const ok = (a.status === 'incidente') === truth(a);
+      const pd = evs.some((e) => e.pd);
+      fbHtml = `<div class="fb ${ok ? 'ok' : 'bad'}"><div><b>${ok ? 'Decisión correcta.' : truth(a) ? 'Era un incidente.' : 'Era un falso positivo o un evento sin incidente.'}</b> ${noteOf(a)}${a.status === 'incidente' && truth(a) ? ` Siguiente fase: contención, preservando la evidencia.${pd ? ' Hay datos personales involucrados: notificar al delegado de protección de datos.' : ''}` : ''}</div></div>`;
+    }
+    d.innerHTML = `<h2>${r.name} <span class="sev ${a.sev}">${a.sev === 'critica' ? 'Crítica' : a.sev[0].toUpperCase() + a.sev.slice(1)}</span> <span class="hint">Alerta ${a.id}, ${fmt(a.t)} UTC</span></h2>
+      <p style="margin:.1rem 0" class="muted">${r.desc}</p>
+      <p style="margin:.3rem 0"><b>Entidad:</b> ${users.map((u) => `${esc(u)} (${USERS[u] ? USERS[u].role : 'sin registro'})`).join(', ') || esc(a.entity)}</p>
+      <div class="scroll" style="max-height:9rem"><table class="tbl"><thead><tr><th>Hora</th><th>Evento</th><th>Detalle</th><th>IP</th></tr></thead><tbody>${evs.map((e) => `<tr><td>${fmt(e.t)}</td><td>${esc(e.act)} ${e.res ? `(${e.res})` : ''}</td><td>${esc(e.det)} ${e.geo && e.geo !== 'Campus' ? `<span class="muted">${esc(e.geo)}</span>` : ''}</td><td class="mono">${esc(e.ip)}</td></tr>`).join('')}</tbody></table></div>
+      <p style="margin:.4rem 0 0"><b>Preguntas de triaje</b></p><ul class="qs">${r.qs.map((x) => `<li>${x}</li>`).join('')}</ul>
+      <p class="muted" style="font-size:.82rem;margin:0">Consejo: busca el usuario o la IP en el flujo de eventos para ver qué pasó antes y después.</p>
+      ${a.status === 'abierta' ? `<div class="decide"><button type="button" class="btn" data-dec="cerrada">Cerrar sin incidente</button><button type="button" class="btn danger" data-dec="incidente">Declarar incidente</button></div>` : ''}${fbHtml}`;
+  }
+  function render() { renderKPIs(); renderEvents(); renderAlerts(); renderIoc(); renderDetail(); $$('#pane-ru .cnt').forEach((node, i) => { node.textContent = `${RULES[i].count} alertas`; }); }
+
+  function showReport() {
+    S.done = true; stop();
+    const s = stats(), R = Object.fromEntries(RULES.map((r) => [r.id, r]));
+    const covered = new Set(S.alerts.flatMap((a) => a.events));
+    const missed = S.ev.filter((e) => e.mal && !covered.has(e.id));
+    const recs = [];
+    const fpR4 = S.alerts.some((a) => a.rule === 'R4' && !truth(a));
+    if (fpR4) recs.push('La exportación del respaldo programado generó un falso positivo: aplica la excepción aprobada para la cuenta de servicio en lugar de subir el umbral.');
+    if (missed.some((e) => e.act === 'Exportación de registros')) recs.push('La exportación de datos personales quedó sin alerta: revisa el umbral de R4 o si la regla está activa.');
+    if (missed.some((e) => e.act === 'Cancelación de una solicitud de refuerzo')) recs.push('Ninguna regla cubre la cancelación de solicitudes tras un acceso sospechoso: propón una regla nueva como lección aprendida.');
+    if (missed.some((e) => e.act === 'Inicio de sesión')) recs.push('Hubo inicios de sesión maliciosos sin alerta: revisa R1, R2 y R3.');
+    if (missed.some((e) => e.domain || e.src === 'Correo')) recs.push('Hubo eventos con indicadores de compromiso sin alerta: mantén R5 activa y la lista de IoC actualizada.');
+    if (S.alerts.some((a) => a.status === 'abierta')) recs.push('Quedaron alertas abiertas: un triaje pendiente retrasa la declaración y la contención.');
+    if (!recs.length) recs.push('Turno bien gestionado: las reglas detectaron la actividad maliciosa y el triaje separó incidentes de falsos positivos.');
+    $('#rep-body').innerHTML = `<div class="rep-grid">
+      <div class="kpi"><b>${S.alerts.length}</b><span>alertas generadas</span></div>
+      <div class="kpi" style="border-left-color:var(--crit)"><b>${s.tp}</b><span>alertas con actividad maliciosa</span></div>
+      <div class="kpi" style="border-left-color:var(--gold)"><b>${s.fp}</b><span>falsos positivos o eventos sin incidente</span></div>
+      <div class="kpi" style="border-left-color:var(--info)"><b>${s.decided ? `${s.correct} de ${s.decided}` : '0'}</b><span>decisiones de triaje correctas</span></div>
+      <div class="kpi"><b>${s.mttd === null ? (firstMalT === null ? 'No aplica' : 'Sin detección') : `${s.mttd} min`}</b><span>tiempo hasta la primera detección</span></div></div>
+      <h3 style="margin:.3rem 0">Eventos maliciosos sin alerta (${missed.length})</h3>
+      ${missed.length ? `<table class="tbl"><thead><tr><th>Hora</th><th>Evento</th><th>Usuario</th><th>Detalle</th></tr></thead><tbody>${missed.map((e) => `<tr><td>${fmt(e.t)}</td><td>${esc(e.act)}</td><td>${esc(e.user)}</td><td>${esc(e.det || e.domain || '')}</td></tr>`).join('')}</tbody></table>` : `<p class="muted">${firstMalT === null ? 'Este escenario no tenía actividad maliciosa.' : 'Todas las acciones maliciosas quedaron cubiertas por alguna alerta.'}</p>`}
+      <h3 style="margin:.6rem 0 .3rem">Lecciones para afinar el SIEM</h3><ul>${recs.map((x) => `<li>${x}</li>`).join('')}</ul>
+      <p class="muted" style="font-size:.84rem">Alertas por regla: ${RULES.map((r) => `${r.id} ${R[r.id].count || 0}`).join(', ')}.</p>`;
+    $('#report').hidden = false; $('#rep-close').focus();
+  }
+
+  /* Eventos de la interfaz */
+  $('#srcs').innerHTML = ['Todas'].concat(SRCS).map((s) => `<button type="button" class="chip" data-src="${s}" aria-pressed="${s === 'Todas'}">${s}</button>`).join(' ');
+  $('#srcs').addEventListener('click', (e) => { const b = e.target.closest('[data-src]'); if (!b) return; srcFilter = b.dataset.src; $$('[data-src]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); renderEvents(); });
+  $('#q').addEventListener('input', (e) => { q = e.target.value; renderEvents(); });
+  $('#play').addEventListener('click', () => { if (S.t >= DUR) return; if (timer) stop(); else start(); });
+  $('#step').addEventListener('click', () => { if (S.t < DUR) { tick(); tick(); } });
+  $('#reset').addEventListener('click', () => { stop(); $('#report').hidden = true; fresh(); $('#play').textContent = 'Iniciar turno'; renderRules(); render(); });
+  $('#scn').addEventListener('change', () => $('#reset').click());
+  $('#end').addEventListener('click', () => { stop(); showReport(); });
+  $$('[data-speed]').forEach((b) => b.addEventListener('click', () => { speed = Number(b.dataset.speed); $$('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); if (timer) { clearInterval(timer); timer = setInterval(tick, 900 / speed); } }));
+  $$('[data-tab]').forEach((b) => b.addEventListener('click', () => { $$('[data-tab]').forEach((x) => x.setAttribute('aria-selected', String(x === b))); ['al', 'ru', 'io'].forEach((k) => { $(`#pane-${k}`).hidden = k !== b.dataset.tab; }); }));
+  $('#alerts').addEventListener('click', (e) => { const b = e.target.closest('[data-al]'); if (!b) return; selected = Number(b.dataset.al); renderAlerts(); renderDetail(); renderEvents(); $('#detail').scrollTop = 0; });
+  $('#detail').addEventListener('click', (e) => { const b = e.target.closest('[data-dec]'); if (!b || !selected) return; const a = S.alerts[selected - 1]; a.status = b.dataset.dec; a.decided = S.t; render(); });
+  $('#pane-ru').addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset.rule) RULES.find((r) => r.id === t.dataset.rule).on = t.checked;
+    if (t.dataset.ex) RULES.find((r) => r.id === 'R4').ex = t.checked;
+  });
+  $('#pane-ru').addEventListener('input', (e) => { const t = e.target; if (!t.dataset.param) return; const r = RULES.find((x) => x.id === t.dataset.param); r.n = Number(t.value); t.nextElementSibling.textContent = t.value; });
+  $('#rep-close').addEventListener('click', () => { $('#report').hidden = true; });
+  $('#rep-reset').addEventListener('click', () => { $('#report').hidden = true; $('#reset').click(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#report').hidden = true; });
+
+  const setTop = () => document.documentElement.style.setProperty('--top', `${$('.topbar').offsetHeight + 4}px`);
+  window.addEventListener('resize', setTop); ['#zoom-in', '#zoom-out'].forEach((id) => $(id).addEventListener('click', () => requestAnimationFrame(setTop)));
+  fresh(); renderRules(); render(); setTop();
+})();
+</script>
+</body>
+</html>
